@@ -51,7 +51,7 @@ Link - [English Premier League 23/24](https://www.kaggle.com/datasets/pranavkarn
 
 
 ## Project Structure
-
+```text
 semantic-search-epl/
 │
 ├── data/
