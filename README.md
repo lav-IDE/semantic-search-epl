@@ -70,6 +70,7 @@ semantic-search-epl/
 │
 ├── requirements.txt
 └── README.md
+```
 
 ## How to Run
 
