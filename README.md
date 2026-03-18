@@ -76,7 +76,7 @@ semantic-search-epl/
 
 From the project Root:
 ```bash
-$ python src/main.py
+$ streamlit run src/main.py
 ```
 You can then enter natural language queries in the terminal
 Type "exit" to quit
@@ -88,7 +88,7 @@ late goals by haaland
 ```
 ### Example output
 ```yaml
-Match ID: 128 | Manchester City vs Arsenal | Score: 0.214
+Match 113: Manchester City vs Arsenal | Score: 0.214
 Haaland finishes a late move after sustained pressure...
 ```
 
@@ -97,7 +97,7 @@ Haaland finishes a late move after sustained pressure...
 - Tf-Idf based semantic search
 - Cosine similarity ranking
 - Text chunking 
-- CLI- based querying
+- CLI- based querying (updated to a dashboard for a better UI)
 
 ## Tech Stack
 - Python
