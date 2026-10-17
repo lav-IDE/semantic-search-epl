@@ -1,109 +1,54 @@
-# Semantic Search Engine – EPL 2023–24
+# EPL Match Commentary Search
 
-This project explores semantic search over full-match commentary from the English Premier League 2023–24 season using NLP techniques.
+This project contains a Streamlit app for searching the 2023–24 English Premier League match commentary dataset. It currently prepares commentary chunks and ranks them with two retrieval methods: TF-IDF with cosine similarity, and sentence embeddings with cosine similarity.
 
-The goal is to retrieve relevant matches based on natural language queries, focusing on meaning rather than exact keyword matching.
+## Data
 
-## Problem Statement
+The app reads `data/23_24_match_details.csv`. The CSV is included in this repository. Rows without an `events` value are removed. The app lowercases the commentary, drops unused columns when present, and assigns each remaining source row an ID based on its original CSV row index. It guesses the home and away teams by looking for team names in the first 40 words of the commentary; if fewer than two names are found, both teams are marked `unknown`.
 
-Match commentaries contain rich contextual information about player performances, momentum shifts, and decisive moments.  
-However, searching these commentaries using keyword-based methods fails to capture semantic intent.
+Commentary is split into overlapping chunks of 50 words with a 10-word overlap. Each chunk keeps its match ID and inferred team names.
 
-This project aims to answer questions like:
-- *“Late goals by Haaland”*
-- *“Matches where Arsenal struggled defensively”*
-- *“High-pressure performances by Manchester City”*
+## Search methods
 
-even when the exact wording does not appear in the text.
+- **TF-IDF:** fits a scikit-learn `TfidfVectorizer` over the chunks, removes English stop words, and ranks chunks by cosine similarity. The app shows up to five results and filters out scores below `0.09`.
+- **Embeddings:** encodes chunks and queries with `sentence-transformers/all-MiniLM-L6-v2`, using normalized embeddings and cosine similarity. The app shows up to ten results.
 
+The Streamlit page displays the two result sets in separate tabs. Each result shows the match ID, inferred teams, similarity score, and the first 300 characters of the chunk.
 
-## Dataset
+## Run the app
 
-- English Premier League 2023–24 season
-- Each row contains **full-match commentary text**
-- Additional metadata includes teams and match-level information
+Use Python with the packages in `requirements.txt` and install the embedding package as well, since it is imported by the app but is not currently listed in that file:
 
-Each match commentary is split into **overlapping text chunks** to improve retrieval granularity.
-Link - [English Premier League 23/24](https://www.kaggle.com/datasets/pranavkarnani/english-premier-league-match-commentary)
-
-
-## Approach (v1)
-
-### 1. Data Preprocessing
-- Removed irrelevant columns
-- Normalized text (lowercasing, cleaning)
-- Inferred home and away teams from commentary, since the original dataset had inconsistent home and away columns.
-- Assigned stable match IDs
-
-### 2. Text Chunking
-- Match commentary is split into overlapping word-based chunks
-- This preserves context while improving semantic retrieval
-
-### 3. Vectorization
-- TF-IDF vectorization using `scikit-learn`
-- Stopword removal and n-gram support
-- Each text chunk is converted into a sparse vector representation
-
-### 4. Semantic Search
-- User query is vectorized using the same TF-IDF space
-- Cosine similarity is computed between the query and all chunks
-- Results are ranked and filtered using a similarity threshold
-
-
-## Project Structure
-```text
-semantic-search-epl/
-│
-├── data/
-│ └── 23_24_match_details.csv
-│
-├── notebooks/
-│ └── semantic.ipynb
-│
-├── src/
-│ ├── load_data.py
-│ ├── preprocess.py
-│ ├── chunking.py
-│ ├── vectorizer.py
-│ ├── search.py
-│ └── main.py
-│
-├── requirements.txt
-└── README.md
-```
-
-## How to Run
-
-From the project Root:
 ```bash
-$ streamlit run src/main.py
-```
-You can then enter natural language queries in the terminal
-Type "exit" to quit
-
-### Example Query
-```csharp
-Enter search query:
-late goals by haaland
-```
-### Example output
-```yaml
-Match 113: Manchester City vs Arsenal | Score: 0.214
-Haaland finishes a late move after sustained pressure...
+pip install -r requirements.txt
+pip install sentence-transformers
+streamlit run src/main.py
 ```
 
-## Version 1 Scope
-### Included
-- Tf-Idf based semantic search
-- Cosine similarity ranking
-- Text chunking 
-- CLI- based querying (updated to a dashboard for a better UI)
+Run the command from the project root. On first use, the Sentence Transformers model may need to be downloaded. Enter a query in the app to see results.
 
-## Tech Stack
-- Python
-- Jupyter Notebook
-- Pandas, Numpy
-- Sci-kit learn (TF-IDF, Cosine Similarity)
+## Project files
+
+```text
+data/23_24_match_details.csv  Dataset used by the app
+notebooks/semantic.ipynb      Notebook with the TF-IDF exploration
+src/load_data.py              CSV loading
+src/preprocess.py             Column selection, team inference, chunk records
+src/chunking.py               Word-based chunking
+src/vectorizer.py             TF-IDF vectorizer and query transform
+src/search.py                 TF-IDF and embedding ranking
+src/embeddings.py             Sentence Transformers model and encoding
+src/main.py                   Streamlit app
+requirements.txt              Declared Python dependencies
+```
+
+## Current limitations
+
+- Home and away teams are inferred from commentary text and can be wrong or unknown.
+- The app builds the TF-IDF matrix and embedding vectors at runtime; there is no persisted search index.
+- Embedding search requires `sentence-transformers`, which is not yet declared in `requirements.txt`.
+- Search is limited to the included 2023–24 commentary CSV.
 
 ## Author
+
 Lavanya Dharmadhikari

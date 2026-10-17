@@ -2,7 +2,8 @@ from load_data import load_csv_path
 from preprocess import select_relevant_columns, correcting_home_away_teams, build_chunk_dataframe
 from chunking import chunk_text
 from vectorizer import build_vectorizer, vectorize_query
-from search import semantic_search
+from search import tfidf_search, embedding_search
+from embeddings import build_embedding_model, embed_chunks, embed_query
 import streamlit as st
 
 csv_path = "data/23_24_match_details.csv"
@@ -18,6 +19,11 @@ def load_and_prepare_chunks(path, team_names):
     df = correcting_home_away_teams(df, team_names)
     return build_chunk_dataframe(df, chunk_text)
 
+@st.cache_resource
+def build_embedding_index(chunks_df):
+    model = build_embedding_model()
+    chunk_vectors = embed_chunks(model, chunks_df["chunk_text"].tolist())
+    return model, chunk_vectors
 
 @st.cache_resource
 def build_search_index(chunks_df):
@@ -31,6 +37,8 @@ try:
     df_chunks = load_and_prepare_chunks(csv_path, teams)
     vectorizer, doc_matrix = build_search_index(df_chunks)
 
+    embedding_model, chunk_vectors = build_embedding_index(df_chunks)
+    
     query = st.text_input("Enter search query", placeholder="Type here...").strip()
 
     if not query:
@@ -38,25 +46,51 @@ try:
     else:
         query_vec = vectorize_query(vectorizer, query)
 
-        results = semantic_search(
+        results = tfidf_search(
             query_vec=query_vec,
             doc_matrix=doc_matrix,
             df_chunks=df_chunks,
             top_k=5,
             min_similarity=0.09,
         )
+        
+        query_embedding = embed_query(embedding_model, query)
+        embedding_results = embedding_search(
+            query_vector=query_embedding,
+            chunk_vectors=chunk_vectors,
+            df_chunks=df_chunks,
+            top_k=10,
+        )
 
-        if results.empty:
-            st.write("No relevant results found.")
-        else:
-            for _, row in results.iterrows():
-                label = (
-                    f"Match {row['match_id']}: {row['home']} vs {row['away']} "
-                    f"(Score: {row['similarity_score']:.3f})"
-                )
-                with st.expander(label):
-                    st.write(row["chunk_text"][:300] + "...")
-                    st.caption(f"Full Match ID: {row['match_id']}")
+        tfidf_tab, embedding_tab = st.tabs(["TF-IDF", "Embeddings"])
+
+        with tfidf_tab:
+            st.subheader("TF-IDF results")
+            if results.empty:
+                st.info("No TF-IDF results found.")
+            else:
+                for _, row in results.iterrows():
+                    label = (
+                        f"Match {row['match_id']}: {row['home']} vs {row['away']} "
+                        f"(Score: {row['similarity_score']:.3f})"
+                    )
+                    with st.expander(label):
+                        st.write(row["chunk_text"][:300] + "...")
+                        st.caption(f"Full Match ID: {row['match_id']}")
+
+        with embedding_tab:
+            st.subheader("Embedding results")
+            if embedding_results.empty:
+                st.info("No embedding results found.")
+            else:
+                for _, row in embedding_results.iterrows():
+                    label = (
+                        f"Match {row['match_id']}: {row['home']} vs {row['away']} "
+                        f"(Score: {row['similarity_score']:.3f})"
+                    )
+                    with st.expander(label):
+                        st.write(row["chunk_text"][:300] + "...")
+                        st.caption(f"Full Match ID: {row['match_id']}")
 
             
             
